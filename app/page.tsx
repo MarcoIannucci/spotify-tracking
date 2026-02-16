@@ -246,24 +246,89 @@ export default function HomePage() {
         </div>
       ) : (
         <div style={{ marginTop: 16, border: "1px solid #222", borderRadius: 14, overflow: "hidden" }}>
-          {/* qui lasci la tua tabella desktop com'è */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1.4fr 0.7fr 0.7fr 0.8fr 0.9fr",
+              gap: 0,
+              background: "#111",
+              padding: 12,
+              fontWeight: 700,
+            }}
+          >
+            <div>Partecipante</div>
+            <div>Dovuto</div>
+            <div>Pagato</div>
+            <div>Residuo</div>
+            <div>Azioni</div>
+          </div>
+
+          {loading ? (
+            <div style={{ padding: 16, opacity: 0.8 }}>Caricamento...</div>
+          ) : (
+            filtered.map((x) => {
+              const due = Number(x.amount_due ?? x.monthly_fee);
+              const paid = Number(x.amount_paid ?? 0);
+              const missing = due - paid;
+              const status = missing <= 0.001 ? "✅ Pagato" : paid > 0 ? "🟧 Parziale" : "❌ Non pagato";
+
+              return (
+                <div
+                  key={x.participant_id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1.4fr 0.7fr 0.7fr 0.8fr 0.9fr",
+                    padding: 12,
+                    borderTop: "1px solid #222",
+                    alignItems: "center",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 700 }}>{x.name}</div>
+                    <div style={{ opacity: 0.7, fontSize: 12 }}>{status}</div>
+                  </div>
+                  <div>{eur(due)}</div>
+                  <div>{eur(paid)}</div>
+                  <div style={{ fontWeight: 700 }}>{eur(Math.max(0, missing))}</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => setPaid(x, due)} style={btn(false)}>
+                      Segna pagato
+                    </button>
+                    <button
+                      onClick={() => {
+                        const v = prompt("Quanto ha pagato? (es. 1.50)", String(paid));
+                        if (v == null) return;
+                        const n = Number(String(v).replace(",", "."));
+                        if (Number.isNaN(n)) return alert("Numero non valido");
+                        setPaid(x, n);
+                      }}
+                      style={btn(false)}
+                    >
+                      Parziale…
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       )}
+
 
     </main>
   );
   function btn(isMobile: boolean): React.CSSProperties {
-  return {
-    padding: isMobile ? 12 : 10,
-    borderRadius: 12,
-    border: "1px solid #333",
-    background: "#121216",
-    color: "#f2f2f2",
-    cursor: "pointer",
-    flex: 1,
-    minHeight: isMobile ? 44 : 36,
-  };
-}
+    return {
+      padding: isMobile ? 12 : 10,
+      borderRadius: 12,
+      border: "1px solid #333",
+      background: "#121216",
+      color: "#f2f2f2",
+      cursor: "pointer",
+      flex: 1,
+      minHeight: isMobile ? 44 : 36,
+    };
+  }
 
   function mobileCard(): React.CSSProperties {
     return { border: "1px solid #222", borderRadius: 16, padding: 12, background: "#0f0f12" };
