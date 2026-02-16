@@ -61,13 +61,8 @@ export async function exportParticipantPdf(
     text(`Residuo: ${eur(Math.max(0, totalDue - totalPaid))}`, 12);
 
     const bytes = await pdf.save();
+    const blob = new Blob([new Uint8Array(bytes)], { type: "application/pdf" });
 
-    const arrayBuffer = bytes.buffer.slice(
-        bytes.byteOffset,
-        bytes.byteOffset + bytes.byteLength
-    );
-
-    const blob = new Blob([arrayBuffer], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement("a");
