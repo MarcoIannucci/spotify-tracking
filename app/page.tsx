@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 
 type Row = {
   participant_id: string;
@@ -30,6 +31,7 @@ function eur(n: number) {
 
 export default function HomePage() {
   const r = useRouter();
+  const isMobile = useMediaQuery("(max-width: 640px)");
   const [sessionReady, setSessionReady] = useState(false);
 
   const [month, setMonth] = useState(() => isoDateLocal(firstDayOfMonth()));
@@ -158,27 +160,34 @@ export default function HomePage() {
 
   return (
     <main style={{ maxWidth: 980, margin: "24px auto", padding: 16 }}>
-      <header style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between" }}>
+      <header
+        style={{
+          display: "flex",
+          gap: 12,
+          alignItems: isMobile ? "stretch" : "center",
+          justifyContent: "space-between",
+          flexDirection: isMobile ? "column" : "row",
+        }}
+      >
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0 }}>Pagamenti Spotify</h1>
-          <div style={{ opacity: 0.8 }}>Mese: <b>{monthLabel}</b></div>
+          <div style={{ opacity: 0.8 }}>
+            Mese: <b>{monthLabel}</b>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+
+        <div style={{ display: "grid", gap: 8 }}>
           <input
             type="month"
             value={month.slice(0, 7)}
             onChange={(e) => setMonth(`${e.target.value}-01`)}
-            style={{ padding: 8, borderRadius: 10, border: "1px solid #333" }}
+            style={{ padding: 10, borderRadius: 12, border: "1px solid #333", width: isMobile ? "100%" : 220 }}
           />
-          <button onClick={() => r.push("/participants")} style={{ padding: 8, borderRadius: 10, border: "1px solid #333" }}>
-            Partecipanti
-          </button>
-          <button onClick={() => r.push("/reports")} style={{ padding: 8, borderRadius: 10, border: "1px solid #333" }}>
-            Report
-          </button>
-          <button onClick={logout} style={{ padding: 8, borderRadius: 10, border: "1px solid #333" }}>
-            Esci
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => r.push("/participants")} style={btn(isMobile)}>Partecipanti</button>
+            <button onClick={() => r.push("/reports")} style={btn(isMobile)}>Report</button>
+            <button onClick={logout} style={btn(isMobile)}>Esci</button>
+          </div>
         </div>
       </header>
 
@@ -189,49 +198,35 @@ export default function HomePage() {
         </label>
       </section>
 
-      <div style={{ marginTop: 16, border: "1px solid #222", borderRadius: 14, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.7fr 0.7fr 0.8fr 0.9fr", gap: 0, background: "#111", padding: 12, fontWeight: 700 }}>
-          <div>Partecipante</div>
-          <div>Dovuto</div>
-          <div>Pagato</div>
-          <div>Residuo</div>
-          <div>Azioni</div>
-        </div>
-
-        {loading ? (
-          <div style={{ padding: 16, opacity: 0.8 }}>Caricamento...</div>
-        ) : (
-          filtered.map((x) => {
+      {isMobile ? (
+        <div style={{ marginTop: 16, display: "grid", gap: 10 }}>
+          {filtered.map((x) => {
             const due = Number(x.amount_due ?? x.monthly_fee);
             const paid = Number(x.amount_paid ?? 0);
             const missing = due - paid;
             const status = missing <= 0.001 ? "✅ Pagato" : paid > 0 ? "🟧 Parziale" : "❌ Non pagato";
 
             return (
-              <div
-                key={x.participant_id}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1.4fr 0.7fr 0.7fr 0.8fr 0.9fr",
-                  padding: 12,
-                  borderTop: "1px solid #222",
-                  alignItems: "center",
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 700 }}>{x.name}</div>
-                  <div style={{ opacity: 0.7, fontSize: 12 }}>{status}</div>
+              <div key={x.participant_id} style={mobileCard()}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                  <div>
+                    <div style={{ fontWeight: 900, fontSize: 16 }}>{x.name}</div>
+                    <div style={{ opacity: 0.8, marginTop: 2 }}>{status}</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ opacity: 0.75, fontSize: 12 }}>Manca</div>
+                    <div style={{ fontWeight: 900, fontSize: 18 }}>{eur(Math.max(0, missing))}</div>
+                  </div>
                 </div>
-                <div>{eur(due)}</div>
-                <div>{eur(paid)}</div>
-                <div style={{ fontWeight: 700 }}>{eur(Math.max(0, missing))}</div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    onClick={() => setPaid(x, due)}
-                    style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid #333" }}
-                  >
-                    Segna pagato
-                  </button>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 10 }}>
+                  <div><div style={miniLabel()}>Dovuto</div><div style={miniVal()}>{eur(due)}</div></div>
+                  <div><div style={miniLabel()}>Pagato</div><div style={miniVal()}>{eur(paid)}</div></div>
+                  <div><div style={miniLabel()}>Residuo</div><div style={miniVal()}>{eur(Math.max(0, missing))}</div></div>
+                </div>
+
+                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                  <button onClick={() => setPaid(x, due)} style={btn(true)}>✅ Pagato</button>
                   <button
                     onClick={() => {
                       const v = prompt("Quanto ha pagato? (es. 1.50)", String(paid));
@@ -240,16 +235,44 @@ export default function HomePage() {
                       if (Number.isNaN(n)) return alert("Numero non valido");
                       setPaid(x, n);
                     }}
-                    style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid #333" }}
+                    style={btn(true)}
                   >
-                    Parziale…
+                    🟧 Parziale
                   </button>
                 </div>
               </div>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      ) : (
+        <div style={{ marginTop: 16, border: "1px solid #222", borderRadius: 14, overflow: "hidden" }}>
+          {/* qui lasci la tua tabella desktop com'è */}
+        </div>
+      )}
+
     </main>
   );
+  function btn(isMobile: boolean): React.CSSProperties {
+  return {
+    padding: isMobile ? 12 : 10,
+    borderRadius: 12,
+    border: "1px solid #333",
+    background: "#121216",
+    color: "#f2f2f2",
+    cursor: "pointer",
+    flex: 1,
+    minHeight: isMobile ? 44 : 36,
+  };
+}
+
+  function mobileCard(): React.CSSProperties {
+    return { border: "1px solid #222", borderRadius: 16, padding: 12, background: "#0f0f12" };
+  }
+  function miniLabel(): React.CSSProperties {
+    return { fontSize: 11, opacity: 0.75 };
+  }
+  function miniVal(): React.CSSProperties {
+    return { fontWeight: 800, marginTop: 2 };
+  }
+
 }
